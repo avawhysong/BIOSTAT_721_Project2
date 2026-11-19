@@ -14,11 +14,12 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
+# R version 4.6.0 (2026-04-24 ucrt)
 
 # Load packages
-library(tidyverse)
-library(lubridate)
-library(gt)
+library(tidyverse) # Version 2.0.0
+library(lubridate) # Version 1.9.5
+library(gt)        # Version 1.3.0
 
 # Load custom data cleaning function
 source("functions.R")
@@ -43,12 +44,12 @@ pollution monitor at the RDU airport. This exposure data is messy and
 will need to be processed.
 
 ```{r data-processing, include=FALSE}
-# Custom function reads in data and performs cleaning; set O3 units to ppb 
-aq18 <- clean_aq_data("data/AQ_2018.csv", units_O3 = "ppb")
-aq19 <- clean_aq_data("data/AQ_2019.csv", units_O3 = "ppb")
-aq20 <- clean_aq_data("data/AQ_2020.csv", units_O3 = "ppb")
+# Custom function reads in data and performs cleaning; set O3 units to ppb
+aq18 <- clean_aq_data("data/AQ_2018.csv", units_o3 = "ppb")
+aq19 <- clean_aq_data("data/AQ_2019.csv", units_o3 = "ppb")
+aq20 <- clean_aq_data("data/AQ_2020.csv", units_o3 = "ppb")
 
-# Combine data from each year into one dataset 
+# Combine data from each year into one dataset
 aq_full <- bind_rows(aq18, aq19, aq20)
 ```
 
@@ -75,75 +76,135 @@ create_aq_table(aq20, 2020, subtitle = "(Jan-Apr)")
 &nbsp;
 
 ## Plots 
-```{r plot 1}
+```{r plot 1, fig.width=7, fig.height=5.5, out.width="100%"}
 # Create data frame with monthly summary statistics for CO and O3
-monthly_summary <- aq_full %>%
+monthly_summary <- aq_full |>
   # Select date and pollutant concentrations
-  select(Date, co_max8hr, o3_max8hr) %>%
-  
+  select(Date, co_max8hr, o3_max8hr) |>
+
   # Create column extracting month from date
   mutate(
-    Month = factor(
+    month = factor(
       # Get three letter abbreviation format for month
       month.abb[lubridate::month(Date)],
       levels = month.abb
     )
-  ) %>%
+  ) |>
 
   # Reshape pollutants into one column
   pivot_longer(
     cols = c(co_max8hr, o3_max8hr),
-    names_to = "Pollutant",
-    values_to = "Concentration"
-  ) %>%
+    names_to = "pollutant",
+    values_to = "concentration"
+  ) |>
 
   # Group by pollutant and calendar month
-  group_by(Pollutant, Month) %>%
+  group_by(pollutant, month) |>
 
   # Calculate monthly statistics
   summarise(
-    Mean = mean(Concentration, na.rm = TRUE),
-    SD = sd(Concentration, na.rm = TRUE),
-    count = sum(!is.na(Concentration)),
+    mean = mean(concentration, na.rm = TRUE),
+    SD = sd(concentration, na.rm = TRUE),
+    count = sum(!is.na(concentration)),
     .groups = "drop"
-  ) %>%
-  
-  # Calculate lower and upper bounds for each month 
+  ) |>
+
+  # Calculate lower and upper bounds for each month
   mutate(
-    LB = Mean - 1.96 * SD/sqrt(count), 
-    UB = Mean + 1.96 * SD/sqrt(count)
+    LB = mean - 1.96 * SD / sqrt(count),
+    UB = mean + 1.96 * SD / sqrt(count)
   )
 
-# Plot monthly average concentrations for CO and O3 
-ggplot(monthly_summary, aes(x = Month, y = Mean, color = Pollutant)) + 
+# Plot monthly average concentrations for CO and O3
+ggplot(monthly_summary, aes(x = month, y = mean, color = pollutant)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = LB, ymax = UB)) +
-  facet_wrap(~ Pollutant,
-             scales = "free_y",
-             ncol = 1,
-             labeller = as_labeller(c(
-               co_max8hr = "CO (ppm)",
-               o3_max8hr = "O3 (ppb)"))
+  facet_wrap(~ pollutant,
+    scales = "free_y",
+    ncol = 1,
+    labeller = as_labeller(c(
+      co_max8hr = "CO (ppm)",
+      o3_max8hr = "O3 (ppb)"
+    ))
   ) +
   labs(
     title = "Monthly Mean CO and O3 Concentrations",
-    subtitle = "Pooled Daily Measurements, 2018–2020",
+    subtitle = "Pooled Daily Measurements, Jan 2018– Apr 2020",
     x = "Month",
     y = "Mean Concentration",
     color = "Pollutant"
   ) +
-  scale_color_discrete(
+  scale_color_manual(
+    values = c(
+      co_max8hr = "#7570B3",
+      o3_max8hr = "#1B9E77"
+    ),
     labels = c(
       co_max8hr = "CO",
       o3_max8hr = "O3"
     )
   ) +
-  theme_minimal() + 
-   theme(
+  theme_minimal() +
+  theme(
     plot.title.position = "plot",
     plot.title = element_text(hjust = 0),
     plot.subtitle = element_text(hjust = 0)
-    )
-  
+  )
+
 ```
+
+
+To account for large difference in scales, I chose to display mean concentrations of CO (ppm) and O3 (ppb) with independent y-axis scales. This ensures patterns in both pollutant concentrations are readable. It is also worth noting that because data collection stopped in April of 2020, monthly means for January-April are based on 3 years of data while May-December are based on only 2.  
+&nbsp;
+
+```{r Plot 2, fig.width=7}
+# Create data frame of average daily PM2.5 by month and year
+monthly_pm <- aq_full |>
+  # Create year and month variables
+  mutate(
+    year = lubridate::year(Date),
+    month = factor(
+      month.abb[lubridate::month(Date)],
+      levels = month.abb
+    )
+  ) |>
+
+  # Group observations by year and month
+  group_by(year, month) |>
+
+  # Calculate monthly mean PM2.5 concentration
+  summarise(
+    mean_pm = mean(pm25_mean, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Create line plot of monthly means by year
+
+ggplot(monthly_pm, aes(x = month,
+                       y = mean_pm,
+                       color = as.factor(year),
+                       group = year)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Monthly Mean PM2.5 Concentrations by Year",
+    subtitle = "2018–2020",
+    x = "Month",
+    y = "Mean PM2.5 Concentration (µg/m³ LC)",
+    color = "Year"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0),
+    plot.subtitle = element_text(hjust = 0)
+  ) +
+  scale_color_brewer(palette = "Dark2") +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.5)
+```
+
+### AI Use Statement 
+
+Code for functions, tables and figures was created with the assistance of AI to debug errors and write portions of code under human instruction. I wrote starter code and submitted it to AI along with specifications for improvements to make. Then I tested the AI output code to make sure it ran as desired before finalizing changes. 
 
