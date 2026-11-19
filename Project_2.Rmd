@@ -1,5 +1,5 @@
 ---
-title: "Project 2"
+title: "Air Quality at RDU Airport (2018-2020)"
 author: "Ava Whysong"
 date: "`r Sys.Date()`"
 output: word_document
@@ -40,8 +40,7 @@ air pollutants and SCD in Durham County, North Carolina. She provides
 data on health system utilization (i.e., emergency department visits,
 hospitalizations, etc.) for SCD and you obtain air pollution data from
 the EPA. The pollutant data are raw measurements taken from the air
-pollution monitor at the RDU airport. This exposure data is messy and
-will need to be processed.
+pollution monitor at the RDU airport. 
 
 ```{r data-processing, include=FALSE}
 # Custom function reads in data and performs cleaning; set O3 units to ppb
@@ -128,7 +127,7 @@ ggplot(monthly_summary, aes(x = month, y = mean, color = pollutant)) +
     ))
   ) +
   labs(
-    title = "Monthly Mean CO and O3 Concentrations",
+    title = "Plot 1: Monthly Mean CO and O3 Concentrations",
     subtitle = "Pooled Daily Measurements, Jan 2018– Apr 2020",
     x = "Month",
     y = "Mean Concentration",
@@ -187,7 +186,7 @@ ggplot(monthly_pm, aes(x = month,
   geom_point() +
   geom_line() +
   labs(
-    title = "Monthly Mean PM2.5 Concentrations by Year",
+    title = "Plot 2: Monthly Mean PM2.5 Concentrations by Year",
     subtitle = "2018–2020",
     x = "Month",
     y = "Mean PM2.5 Concentration (µg/m³ LC)",
@@ -204,7 +203,12 @@ ggplot(monthly_pm, aes(x = month,
   geom_point(size = 2.5)
 ```
 
+It appears CO and O3 concentrations are inversely related, with CO levels reaching a peak in summer months and O3 levels peaking in winter months. The summary tables show 2020 has a high maximum PM2.5 concentration and a low maximum O3 concentration compared to previous years; the low maximum O3 value may be explained by the lack of data for May-December, since O3 levels previously peaked in June. There does not appear to be a clear annual pattern in monthly PM2.5 concentration levels. 
+
 ### AI Use Statement 
 
 Code for functions, tables and figures was created with the assistance of AI to debug errors and write portions of code under human instruction. I wrote starter code and submitted it to AI along with specifications for improvements to make. Then I tested the AI output code to make sure it ran as desired before finalizing changes. 
+
+### GitHub Repository:
+https://github.com/avawhysong/BIOSTAT_721_Project2.git
 
